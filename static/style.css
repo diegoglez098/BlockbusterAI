@@ -1,0 +1,70 @@
+body {
+    background-color: #001f3f;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+}
+
+.container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    color: #ffffff;
+}
+
+input[type="text"], input[type="number"], button {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+button {
+    background-color: #ff6b6b;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+button:hover {
+    background-color: #ee5253;
+}
+
+.alert-info {
+    background-color: #0a3d62;
+    border: none;
+    color: #ffffff;
+}
+
+.progress {
+    height: 30px;
+}
+
+.progress-bar {
+    background-color: #ff6b6b;
+}
+
+.modal-content {
+    background-color: #001f3f;
+    color: #ffffff;
+}
+
+.modal-header .close {
+    color: #ffffff;
+    position: absolute;
+    top: 15px;
+    right: 20px;
+}

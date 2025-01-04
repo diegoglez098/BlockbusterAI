@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BlockBuster AI</title>
+    <link
+      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+  </head>
+  <body>
+    <div class="container">
+    <img src="{{ url_for('static', filename='logo.png') }}" class="img-fluid" style="width: 300px; margin-top: -80px;" alt="Movie Success Predictor" />
+    <br>
+      <div class="row justify-content-center">
+        <div class="col-md-12">
+          <form id="predictionForm" action="/predict" method="post">
+            <div class="form-group">
+              <label for="actor">Actor:</label>
+              <input
+                type="text"
+                class="form-control"
+                id="actor"
+                name="actor"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="actress">Actor 2:</label>
+              <input
+                type="text"
+                class="form-control"
+                id="actress"
+                name="actress"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="genre">Género:</label>
+              <input
+                type="text"
+                class="form-control"
+                id="genre"
+                name="genre"
+                required
+              />
+            </div>
+            <div class="form-group">
+              <label for="budget">Presupuesto:</label>
+              <input
+                type="number"
+                class="form-control"
+                id="budget"
+                name="budget"
+                required
+              />
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">
+              Predecir
+            </button>
+          </form>
+
+          <div id="loading-icon" class="mt-4 text-center" style="display: none">
+            <span
+              class="spinner-border spinner-border-sm"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            <span> Cargando resultados...</span>
+          </div>
+
+          <!-- Modal -->
+          <div
+            class="modal fade"
+            id="resultModal"
+            tabindex="-1"
+            role="dialog"
+            aria-labelledby="resultModalLabel"
+            aria-hidden="true"
+          >
+            <div class="modal-dialog" role="document">
+              <div
+                class="modal-content"
+                style="background-color: #001f3f; color: #ffffff"
+              >
+                <div class="modal-header">
+                  <h5 class="modal-title" id="resultModalLabel">
+                    Resultados
+                  </h5>
+                </div>
+                <div class="modal-body">
+                  <div class="progress mt-4" id="progress-container">
+                    <div
+                      id="progress-bar"
+                      class="progress-bar"
+                      role="progressbar"
+                      style="width: 0%"
+                      aria-valuenow="0"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    ></div>
+                  </div>
+                  <div class="alert alert-info mt-4" id="result-container">
+                    <h6>
+                      Probabilidad de éxito basada en puntuaciones:
+                      <span id="result"></span>
+                    </h6>
+                    <h6>
+                        Probabilidad de éxito basada en presupuesto:
+                        <span id="success"></span>
+                      </h6>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script>
+      $(document).ready(function () {
+        $("#predictionForm").on("submit", function (event) {
+          event.preventDefault(); // Evitar el envío del formulario por defecto
+
+          // Mostrar el ícono de carga
+          $("#loading-icon").show();
+
+          // Ocultar el resultado anterior y resetear la barra de progreso
+          $("#result-container").hide();
+          var progressBar = $("#progress-bar");
+          progressBar.css("width", "0%").attr("aria-valuenow", 0);
+
+          // Obtener los datos del formulario
+          var formData = $(this).serialize();
+
+          // Hacer la solicitud al servidor
+          $.post("/predict", formData, function (data) {
+            var probability = data.probability;
+            var success = data.success;
+            var bar = 0;
+            var color = "bg-success";
+
+            if (success == "FRACASO") {
+              bar = probability - 20;
+            } else {
+              bar = probability + 20;
+            }
+
+            if (bar <30.0) {
+              color = "red";
+            } else if (bar < 70.0) {
+              color = "orange";
+            }
+            else{
+                color = "green";
+            }
+            
+            
+            // Actualizar la barra de progreso
+            progressBar
+              .css("width", bar + "%")
+                .css("background-color", color)
+              .attr("aria-valuenow", bar);
+
+            // Mostrar el resultado
+            $("#result").text(probability.toFixed(2) + "%");
+            $("#success").text(success);
+            $("#result-container").show();
+
+            // Ocultar el ícono de carga
+            $("#loading-icon").hide();
+
+            // Mostrar el modal con los resultados
+            $("#resultModal").modal("show");
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
