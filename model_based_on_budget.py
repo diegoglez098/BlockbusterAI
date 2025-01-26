@@ -1,70 +1,94 @@
-# train_model.py
-
+# train_model.py (versión mejorada)
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder, StandardScaler
-from xgboost import XGBClassifier
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.impute import SimpleImputer
 from sklearn.metrics import classification_report, accuracy_score
-from joblib import dump
+import joblib
+import os
 
 print("Iniciando el programa...")
 
 # 1. Cargar el dataset
 print("Cargando el dataset...")
 df = pd.read_csv('dataset.csv')
-print(f"Dataset cargado con {len(df)} filas y {len(df.columns)} columnas.\n")
+print(f"Dataset cargado: {df.shape[0]} filas, {df.shape[1]} columnas.\n")
 
-# 2. Preprocesar datos
-print("Preprocesando los datos...")
+# 2. Definir características y target
+print("Preparando características...")
+# Eliminar columnas no relevantes
+df = df.drop(columns=['title', 'revenue','imdb_score'])
 
-# Imputar valores faltantes si es necesario
-numeric_cols = df.select_dtypes(include=[np.number]).columns
-df[numeric_cols] = df[numeric_cols].fillna(df[numeric_cols].mean())
+# Separar características y target
+X = df.drop(columns=['success'])
+y = df['success']
 
-# Convertir variables categóricas a numéricas
-print("Convirtiendo columnas categóricas a numéricas...")
-label_encoders = {}
-for col in ['actor', 'actress', 'genre']:
-    le = LabelEncoder()
-    df[col] = le.fit_transform(df[col])
-    label_encoders[col] = le
-    print(f"Columna '{col}' convertida a valores numéricos.\n")
+# 3. Preprocesamiento avanzado
+print("Creando pipeline de preprocesamiento...")
 
-# Escalar presupuesto y recaudación
-print("Normalizando presupuesto y recaudación...")
-scaler = StandardScaler()
-df[['budget', 'revenue']] = scaler.fit_transform(df[['budget', 'revenue']])
-print("Normalización completada.\n")
+# Identificar columnas por tipo
+categorical_cols = ['actor', 'actress', 'genre']
+numeric_cols = X.select_dtypes(include=np.number).columns.tolist()
+numeric_cols = [col for col in numeric_cols if col not in ['success']]
 
-# 3. Dividir el dataset en características (X) y etiqueta (y)
-print("Dividiendo el dataset en características (X) y etiquetas (y)...")
-X = df[['actor', 'actress', 'genre', 'budget']]  # Usamos las 4 características
-y = df['success']  # Éxito (1) o no (0)
-print(f"X contiene {X.shape[1]} características y {X.shape[0]} ejemplos.\n")
+# Transformadores numéricos y categóricos
+numeric_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='mean')),
+    ('scaler', StandardScaler())])
 
-# 4. Dividir en datos de entrenamiento y prueba
-print("Dividiendo datos en entrenamiento y prueba...")
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-print(f"Datos de entrenamiento: {X_train.shape[0]} ejemplos.\nDatos de prueba: {X_test.shape[0]} ejemplos.\n")
+categorical_transformer = Pipeline(steps=[
+    ('imputer', SimpleImputer(strategy='constant', fill_value='Unknown')),
+    ('onehot', OneHotEncoder(handle_unknown='ignore'))])
 
-# 5. Crear y entrenar el modelo
-print("Creando y entrenando el modelo XGBoost...")
-model = XGBClassifier(eval_metric='logloss', use_label_encoder=False, random_state=42)
+# Preprocesador completo
+preprocessor = ColumnTransformer(
+    transformers=[
+        ('num', numeric_transformer, numeric_cols),
+        ('cat', categorical_transformer, categorical_cols)])
+
+# 4. Pipeline completo con modelo
+print("Construyendo pipeline completo...")
+model = Pipeline(steps=[
+    ('preprocessor', preprocessor),
+    ('classifier', RandomForestClassifier(
+        n_estimators=1000,
+        class_weight='balanced',
+        random_state=42,
+        n_jobs=-1))
+])
+
+# 5. Dividir datos
+print("Dividiendo en train-test...")
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, 
+    test_size=0.2, 
+    random_state=42,
+    stratify=y  # Mantener distribución de clases
+)
+
+# 6. Entrenamiento
+print("Entrenando modelo...")
 model.fit(X_train, y_train)
-print("Modelo entrenado.\n")
 
-# 6. Evaluar el modelo
-print("Evaluando el modelo...")
+# 7. Evaluación
+print("\nEvaluación del modelo:")
 y_pred = model.predict(X_test)
-print(f"Precisión del modelo: {accuracy_score(y_test, y_pred):.2f}\n")
-print("Reporte de clasificación:\n", classification_report(y_test, y_pred))
+print(f"Exactitud: {accuracy_score(y_test, y_pred):.4f}")
+print("Reporte completo:")
+print(classification_report(y_test, y_pred))
 
-# 7. Guardar el modelo y los codificadores
-print("Guardando el modelo y los codificadores...")
-dump(model, "models/based_on_budget/movie_success_model_xgb.joblib")
-dump(label_encoders['actor'], "models/based_on_budget/encoder_actor.joblib")
-dump(label_encoders['actress'], "models/based_on_budget/encoder_actress.joblib")
-dump(label_encoders['genre'], "models/based_on_budget/encoder_genre.joblib")
-dump(scaler, "models/based_on_budget/scaler.joblib")
-print("Modelo y codificadores guardados exitosamente.")
+# 8. Guardar componentes
+print("\nGuardando artefactos...")
+os.makedirs('models/based_on_budget', exist_ok=True)
+
+# Guardar modelo completo
+joblib.dump(model, 'models/based_on_budget/model.pkl')
+
+# Guardar preprocesador por separado
+joblib.dump(preprocessor, 'models/based_on_budget/preprocessor.pkl')
+
+print("Proceso completado exitosamente!")

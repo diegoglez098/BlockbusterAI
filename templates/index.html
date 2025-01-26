@@ -1,188 +1,213 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BlockBuster AI</title>
-    <link
-      href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='style.css') }}"
-    />
-  </head>
-  <body>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
     <div class="container">
-    <img src="{{ url_for('static', filename='logo.png') }}" class="img-fluid" style="width: 300px; margin-top: -80px;" alt="Movie Success Predictor" />
-    <br>
-      <div class="row justify-content-center">
-        <div class="col-md-12">
-          <form id="predictionForm" action="/predict" method="post">
-            <div class="form-group">
-              <label for="actor">Actor:</label>
-              <input
-                type="text"
-                class="form-control"
-                id="actor"
-                name="actor"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="actress">Actor 2:</label>
-              <input
-                type="text"
-                class="form-control"
-                id="actress"
-                name="actress"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="genre">Género:</label>
-              <input
-                type="text"
-                class="form-control"
-                id="genre"
-                name="genre"
-                required
-              />
-            </div>
-            <div class="form-group">
-              <label for="budget">Presupuesto:</label>
-              <input
-                type="number"
-                class="form-control"
-                id="budget"
-                name="budget"
-                required
-              />
-            </div>
-            <button type="submit" class="btn btn-primary btn-block">
-              Predecir
-            </button>
-          </form>
+        <img src="{{ url_for('static', filename='logo.png') }}" class="img-fluid" style="width: 300px; margin-top: -80px;" alt="BlockBuster AI">
+        <br>
+        <div class="row justify-content-center">
+            <div class="col-md-12">
+                <form id="predictionForm" action="/predict" method="post">
+                    <div class="form-group">
+                        <label for="actor">Actor principal:</label>
+                        <input type="text" class="form-control" id="actor" name="actor" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="actress">Actor secundario:</label>
+                        <input type="text" class="form-control" id="actress" name="actress" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="genre">Género:</label>
+                        <input type="text" class="form-control" id="genre" name="genre" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="budget">Presupuesto (USD):</label>
+                        <input type="number" class="form-control" id="budget" name="budget" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">Predecir</button>
+                </form>
 
-          <div id="loading-icon" class="mt-4 text-center" style="display: none">
-            <span
-              class="spinner-border spinner-border-sm"
-              role="status"
-              aria-hidden="true"
-            ></span>
-            <span> Cargando resultados...</span>
-          </div>
+                <div id="loading-icon" class="mt-4 text-center" style="display: none">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <span> Cargando resultados...</span>
+                </div>
 
-          <!-- Modal -->
-          <div
-            class="modal fade"
-            id="resultModal"
-            tabindex="-1"
-            role="dialog"
-            aria-labelledby="resultModalLabel"
-            aria-hidden="true"
-          >
-            <div class="modal-dialog" role="document">
-              <div
-                class="modal-content"
-                style="background-color: #001f3f; color: #ffffff"
-              >
-                <div class="modal-header">
-                  <h5 class="modal-title" id="resultModalLabel">
-                    Resultados
-                  </h5>
+                <!-- Modal de Resultados -->
+                <div class="modal fade" id="resultModal" tabindex="-1" role="dialog" aria-labelledby="resultModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg" role="document">
+                        <div class="modal-content" style="background-color: #001f3f; color: #ffffff">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="resultModalLabel">Resultados de la Predicción</h5>
+                                <button type="button" class="close" data-dismiss="modal" aria-label="Close" style="color: white;">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="progress mt-4" id="progress-container">
+                                    <div id="progress-bar" class="progress-bar" role="progressbar" 
+                                         style="width: 0%" aria-valuenow="0" aria-valuemin="0" 
+                                         aria-valuemax="100"></div>
+                                </div>
+                                
+                                <div class="alert alert-info mt-4" id="result-container">
+                                    <h6>Probabilidad de éxito basada en puntuaciones: 
+                                        <span id="result"></span></h6>
+                                    <h6>Predicción basada en presupuesto: 
+                                        <span id="success"></span></h6>
+                                </div>
+
+                                <button id="showRecommendations" class="btn btn-warning btn-block mt-3" 
+                                        style="display: none;">
+                                    Ver Recomendaciones Detalladas
+                                </button>
+                                
+                                <div id="recommendationsSection" style="display: none;">
+                                    <hr class="bg-light">
+                                    
+                                    <div class="budget-analysis mt-4">
+                                        <h4 class="text-center mb-4">Análisis para <span id="genreName" class="font-italic"></span></h4>
+                                        <div class="alert alert-secondary">
+                                            <h5>Presupuesto</h5>
+                                            <p class="mb-1" id="budgetStatus"></p>
+                                            <p class="mb-0">Presupuesto promedio recomendado: 
+                                                <strong id="avgBudget"></strong></p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mt-4">
+                                        <div class="col-md-6">
+                                            <div class="card bg-light text-dark">
+                                                <div class="card-header bg-primary text-white">
+                                                    <h5 class="mb-0">Top Actores Recomendados</h5>
+                                                </div>
+                                                <ul id="topActors" class="list-group list-group-flush"></ul>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="col-md-6">
+                                            <div class="card bg-light text-dark">
+                                                <div class="card-header bg-danger text-white">
+                                                    <h5 class="mb-0">Top Actrices Recomendadas</h5>
+                                                </div>
+                                                <ul id="topActresses" class="list-group list-group-flush"></ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="modal-body">
-                  <div class="progress mt-4" id="progress-container">
-                    <div
-                      id="progress-bar"
-                      class="progress-bar"
-                      role="progressbar"
-                      style="width: 0%"
-                      aria-valuenow="0"
-                      aria-valuemin="0"
-                      aria-valuemax="100"
-                    ></div>
-                  </div>
-                  <div class="alert alert-info mt-4" id="result-container">
-                    <h6>
-                      Probabilidad de éxito basada en puntuaciones:
-                      <span id="result"></span>
-                    </h6>
-                    <h6>
-                        Probabilidad de éxito basada en presupuesto:
-                        <span id="success"></span>
-                      </h6>
-                  </div>
-                </div>
-              </div>
             </div>
-          </div>
         </div>
-      </div>
     </div>
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    
     <script>
-      $(document).ready(function () {
-        $("#predictionForm").on("submit", function (event) {
-          event.preventDefault(); // Evitar el envío del formulario por defecto
+        $(document).ready(function () {
+            $("#predictionForm").on("submit", function (event) {
+                event.preventDefault();
+                $("#loading-icon").show();
+                $("#result-container, #recommendationsSection").hide();
+                var progressBar = $("#progress-bar");
+                progressBar.css("width", "0%").attr("aria-valuenow", 0);
 
-          // Mostrar el ícono de carga
-          $("#loading-icon").show();
+                $.post("/predict", $(this).serialize(), function (data) {
+                    // Actualizar resultados principales
+                    const prob = data.probability.toFixed(2);
+                    const success = data.success;
+                    const rec = data.recommendations;
 
-          // Ocultar el resultado anterior y resetear la barra de progreso
-          $("#result-container").hide();
-          var progressBar = $("#progress-bar");
-          progressBar.css("width", "0%").attr("aria-valuenow", 0);
+                    // Configurar barra de progreso
+                    let barValue = prob;
+                    let barColor = "bg-success";
+                    
+                    if (success.includes("FRACASO")) {
+                        barColor = "bg-danger";
+                        barValue = prob < 20 ? 100 : prob;
+                    } else if (prob < 70) {
+                        barColor = "bg-warning";
+                    }
+                    
+                    progressBar
+                        .css("width", barValue + "%")
+                        .css("background-color", barColor)
+                        .attr("aria-valuenow", barValue);
 
-          // Obtener los datos del formulario
-          var formData = $(this).serialize();
+                    $("#result").text(prob + "%");
+                    $("#success").text(success);
 
-          // Hacer la solicitud al servidor
-          $.post("/predict", formData, function (data) {
-            var probability = data.probability;
-            var success = data.success;
-            var bar = 0;
-            var color = "bg-success";
+                    // Configurar recomendaciones
+                    $("#genreName").text(rec.genre);
+                    $("#avgBudget").text("$" + 
+                        Number(rec.budget_analysis.genre_avg_budget).toLocaleString('es-ES'));
+                    $("#budgetStatus").html(`
+                        <span class="badge ${rec.budget_analysis.budget_status.includes('bajo') ? 'badge-danger' : 
+                            rec.budget_analysis.budget_status.includes('alto') ? 'badge-warning' : 'badge-success'}">
+                            ${rec.budget_analysis.budget_status}
+                        </span> Tu presupuesto: $${Number(rec.budget_analysis.user_budget).toLocaleString('es-ES')}
+                    `);
 
-            if (success == "FRACASO") {
-              bar = probability - 20;
-            } else {
-              bar = probability + 20;
-            }
+                    // Llenar actores
+                    $("#topActors").empty();
+                    rec.top_actors.forEach(actor => {
+                        $("#topActors").append(`
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                ${actor.actor}
+                                <div>
+                                    <span class="badge badge-primary badge-pill mr-2">
+                                        $${Number(actor.budget).toLocaleString('es-ES')}
+                                    </span>
+                                    <span class="badge badge-success badge-pill">
+                                        ${(actor.success * 100).toFixed(1)}%
+                                    </span>
+                                </div>
+                            </li>
+                        `);
+                    });
 
-            if (bar <30.0) {
-              color = "red";
-            } else if (bar < 70.0) {
-              color = "orange";
-            }
-            else{
-                color = "green";
-            }
-            
-            
-            // Actualizar la barra de progreso
-            progressBar
-              .css("width", bar + "%")
-                .css("background-color", color)
-              .attr("aria-valuenow", bar);
+                    // Llenar actrices
+                    $("#topActresses").empty();
+                    rec.top_actresses.forEach(actress => {
+                        $("#topActresses").append(`
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                ${actress.actress}
+                                <div>
+                                    <span class="badge badge-danger badge-pill mr-2">
+                                        $${Number(actress.budget).toLocaleString('es-ES')}
+                                    </span>
+                                    <span class="badge badge-success badge-pill">
+                                        ${(actress.success * 100).toFixed(1)}%
+                                    </span>
+                                </div>
+                            </li>
+                        `);
+                    });
 
-            // Mostrar el resultado
-            $("#result").text(probability.toFixed(2) + "%");
-            $("#success").text(success);
-            $("#result-container").show();
+                    // Manejar botón de recomendaciones
+                    $("#showRecommendations").show().off("click").click(function() {
+                        $("#recommendationsSection").slideToggle(400, function() {
+                            $(this).is(":visible") ? 
+                                $("#showRecommendations").html('<i class="fas fa-eye-slash"></i> Ocultar Recomendaciones') :
+                                $("#showRecommendations").html('<i class="fas fa-eye"></i> Ver Recomendaciones Detalladas');
+                        });
+                    });
 
-            // Ocultar el ícono de carga
-            $("#loading-icon").hide();
-
-            // Mostrar el modal con los resultados
-            $("#resultModal").modal("show");
-          });
+                    $("#loading-icon").hide();
+                    $("#result-container").show();
+                    $("#resultModal").modal("show");
+                });
+            });
         });
-      });
     </script>
-  </body>
+</body>
 </html>
